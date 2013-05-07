@@ -98,10 +98,9 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		if (INVOKE_FUNCTION_COMMAND.equals(actionOrRequestId))
 			this.doWsRequest(request, response, "GET");
 		
-		//	TODO alter URL of test form to point to this servlet
-		else if ("test".equals(actionOrRequestId)) {
+		//	provide test form
+		else if ("test".equals(actionOrRequestId))
 			this.doTestForm(request, response, "GET");
-		}
 		
 		//	simply loop through the rest
 		else this.doProxyRequest(request, response, "GET");
