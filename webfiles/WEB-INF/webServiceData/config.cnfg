@@ -1,7 +1,7 @@
 cssNames = "feedbackClientLayout.css";
 
 GgConfigName = "WebServices.Taggers";
-GgConfigPath = "E:/GoldenGATEv3/Configurations/";
+GgConfigHost = "http://plazi.cs.umb.edu/GgServer/Configurations/";
 
 allowUserInteraction = "false";
 maxParallelRequests = "5";
