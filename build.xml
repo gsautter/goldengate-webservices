@@ -28,5 +28,6 @@
 	
 	<target name="war" depends="compile" description="create the war file">
 		<antcall target="dist.war" />
+		<antcall target="dist.manager" />
 	</target>
 </project>

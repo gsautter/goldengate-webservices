@@ -5,7 +5,7 @@
 -->
 
 <project name="dist">
-	<target name="war" depends="jar">
+	<target name="war" depends="servlet">
 		<delete file="${war.file}" />
 		<war warfile="${war.file}" webxml="${web.home}/WEB-INF/web.xml">
 			<fileset dir="${build.home}">
@@ -16,11 +16,27 @@
 		</war>
 	</target>
 	
-	<target name="jar">
-		<delete file="${jar.file}" />
-		<jar destfile="${jar.file}">
+	<target name="servlet">
+		<delete file="${jar.servlet}" />
+		<jar destfile="${jar.servlet}">
 			<fileset dir="${build.home}/classes" includes="**/**.class"/>
 			<fileset dir="${src.home}" includes="**/**.java"/>
+			<fileset dir="." includes="LICENSE.txt"/>
+		</jar>
+	</target>
+	
+	<target name="manager">
+		<delete file="${jar.manager}" />
+		<jar destfile="${jar.manager}">
+			<fileset dir="${build.home}/classes" includes="**/GoldenGateWebServiceConstants.class"/>
+			<fileset dir="${build.home}/classes" includes="**/GoldenGateWebServiceConstants$**.class"/>
+			<fileset dir="${build.home}/classes" includes="**/WebService.class"/>
+			<fileset dir="${build.home}/classes" includes="**/WebService$**.class"/>
+			<fileset dir="${build.home}/classes" includes="**/WebServiceManager.class"/>
+			<fileset dir="${build.home}/classes" includes="**/WebServiceManager$**.class"/>
+			<fileset dir="${src.home}" includes="**/GoldenGateWebServiceConstants.java"/>
+			<fileset dir="${src.home}" includes="**/WebService.java"/>
+			<fileset dir="${src.home}" includes="**/WebServiceManager.java"/>
 			<fileset dir="." includes="LICENSE.txt"/>
 		</jar>
 	</target>
