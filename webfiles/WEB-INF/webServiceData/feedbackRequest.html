@@ -1,0 +1,57 @@
+﻿<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>HTML Feedback Engine</title>
+<script type="text/javascript">
+var PageImageWindow;
+
+function openPageImages(contextAddress, docId, pages) {
+	if ((PageImageWindow != null) && !PageImageWindow.closed) {
+	  PageImageWindow.location.href = (contextAddress + "/images/" + docId + "/" + pages);
+	  PageImageWindow.focus();
+	}
+  else PageImageWindow = window.open((contextAddress + "/images/" + docId + "/" + pages), "PageImageWindow", "width=650,height=850,top=100,left=100,resizable=yes,scrollbars=yes");
+}
+
+var ExplanationWindow;
+
+function openExplanation(contextAddress, requestType) {
+	if ((ExplanationWindow != null) && !ExplanationWindow.closed) {
+	  ExplanationWindow.location.href = (contextAddress + "/explanations/" + requestType + ".html");
+	  ExplanationWindow.focus();
+	}
+  else ExplanationWindow = window.open((contextAddress + "/explanations/" + requestType + ".html"), "ExplanationWindow", "width=750,height=635,top=100,left=100,resizable=yes,scrollbars=yes");
+}
+
+var PrivacyPolicyWindow;
+
+function openPrivacyPolicy(contextAddress) {
+	if ((PrivacyPolicyWindow != null) && !PrivacyPolicyWindow.closed) {
+	  PrivacyPolicyWindow.focus();
+	}
+  else PrivacyPolicyWindow = window.open((contextAddress + "/PrivacyPolicy.html"), "PrivacyPolicyWindow", "width=750,height=635,top=100,left=100,resizable=yes,scrollbars=yes");
+}
+</script>
+
+</head>
+<body>
+<div class="page">
+
+<center>
+<div class="navigationMain">
+GoldenGATE Interactive Web Service.
+&nbsp;&nbsp;<includeLink onclick="openPageImages('@ContextAddress', '@TargetDocumentID', '@TargetPageID')" label="View Page Image(s)" title="Display the image(s) of the document page(s) this feedback request refers to."/>
+&nbsp;&nbsp;<includeLink onclick="openExplanation('@ContextAddress', '@RequesterClassName')" label="What To Do?" title="Open an introduction and explanation page about this kind of feedback requests."/>
+&nbsp;&nbsp;<includeLink onclick="openPrivacyPolicy('@ContextAddress')" label="Privacy Policy" title="Open the privacy policy of the GoldenGATE Community Markup System."/>
+</div>
+<div class="feedback">
+<includeBody/>
+</div>
+<includeFile file="footer.html"/>
+</center>
+</div>
+</body>
+</html>
+
+
+

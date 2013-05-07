@@ -1,0 +1,8 @@
+cssNames = "feedbackClientLayout.css";
+
+GgConfigName = "WebServices.Taggers";
+GgConfigPath = "E:/GoldenGATEv3/Configurations/";
+
+allowUserInteraction = "false";
+maxParallelRequests = "5";
+maxParallelTokens = "0";

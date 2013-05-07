@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<web-app>
+	<servlet>
+		<servlet-name>ResServlet</servlet-name>
+		<servlet-class>de.uka.ipd.idaho.easyIO.web.ResourceServlet</servlet-class>
+		<init-param>
+			<param-name>dataPath</param-name>
+			<param-value>resData</param-value>
+		</init-param>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>ResServlet</servlet-name>
+		<url-pattern>/resources/*</url-pattern>
+	</servlet-mapping>
+	<servlet>
+		<servlet-name>GgWebService</servlet-name>
+		<servlet-class>de.uka.ipd.idaho.goldenGate.webServices.GoldenGateWebServiceServlet</servlet-class>
+		<init-param>
+			<param-name>dataPath</param-name>
+			<param-value>webServiceData</param-value>
+		</init-param>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>GgWebService</servlet-name>
+		<url-pattern>/ws/*</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>GgWebService</servlet-name>
+		<url-pattern>/ws</url-pattern>
+	</servlet-mapping>
+	<servlet>
+		<servlet-name>GgWsSync</servlet-name>
+		<servlet-class>de.uka.ipd.idaho.goldenGate.webServices.GoldenGateWebServiceSynchronizer</servlet-class>
+		<init-param>
+			<param-name>dataPath</param-name>
+			<param-value>wsSyncData</param-value>
+		</init-param>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>GgWsSync</servlet-name>
+		<url-pattern>/wss/*</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>GgWsSync</servlet-name>
+		<url-pattern>/wss</url-pattern>
+	</servlet-mapping>
+</web-app>
