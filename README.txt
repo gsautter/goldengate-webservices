@@ -49,13 +49,15 @@ workspace, and if so, uses the recent builds found in their "dist" folders.
 
 SETTING UP GoldenGATE Web Services
 
-Build the WAR file using Ant, and then deploy GgWS.war to your Tomcat
+Build the ZIP file using Ant, and then move GgWS.zip to your Tomcat (packs as an exploded archive directory, zipped up for your convenience; WAR deployment is impractical, as updates would uverwrite the configurations you make)
 
-Call http://localhost:8080/GgWS/ws to make Tomcat extract GgWS.war
-(you might have to re-start Tomcat for it to recognize the WAR file)
-(adjust server name and port if working remotely or Tomcat runs on a different port, respectively)
+Create a GgWS sub folder in Tomcat's webapps folder.
 
-Tomcat's webapps folder should have a GgWS sub folder now, and it's time for some configuration:
+Un-zip the exploded archive directory into the GgWS folder.
+If you have WebAppUpdater (builds with idaho-core) installed, you can also simply type "bash update GgWS" in the console.
+
+Now, it's time for some configuration:
+
 To enable GoldenGATE Web Services to cache requests in the file system and download analysis logic from other servers, give the web application the permission to create and manipulate files and folders within its deployment folder and to establish outgoing network connections (there are two ways to achieve this):
 
     The simple, but very coarse way is to disable Tomcat's security manager altogether (not recommended)

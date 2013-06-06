@@ -1,0 +1,3 @@
+#! /bin/bash
+cd GgWS
+unzip -uo GgWS.zip -x *.cnfg *ooter.html
