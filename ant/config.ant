@@ -32,7 +32,7 @@
 	<property name="jar.servlet" value="${build.home}/WEB-INF/lib/GoldenGateWebServices.jar" />
 	
 	<!-- path to the .jar file that shall be created -->
-	<property name="jar.manager" value="${dist.home}/WebService.jar" />
+	<property name="jar.manager" value="${dist.home}/Plugins/WebService.jar" />
 	
 	<!-- path to the .zip file that shall be created -->
 	<property name="zip.file" value="${dist.home}/GgWS.zip" />

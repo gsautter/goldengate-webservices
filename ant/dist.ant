@@ -10,7 +10,7 @@
 		<zip destfile="${zip.file}">
 			<fileset dir="${build.home}">
 				<!-- Don't put the classes into this twice -->
-				<exclude name="classes/*" />
+				<exclude name="classes/**" />
 			</fileset>
 			<fileset dir="${web.home}" />
 		</zip>
