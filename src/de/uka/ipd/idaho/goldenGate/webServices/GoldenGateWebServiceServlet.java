@@ -164,13 +164,6 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 	protected void doInit() throws ServletException {
 		super.doInit();
 		
-		//	read how to access GoldenGATE config
-		String ggConfigName = this.getSetting("GgConfigName");
-		String ggConfigHost = this.getSetting("GgConfigHost");
-		String ggConfigPath = this.getSetting("GgConfigPath");
-		if (ggConfigName == null)
-			throw new ServletException("Unable to access GoldenGATE Configuration.");
-		
 		//	read additional parameters
 		String allowUserInteraction = this.getSetting("allowUserInteraction", "true");
 		if ("no".equalsIgnoreCase(allowUserInteraction) || "false".equalsIgnoreCase(allowUserInteraction))
@@ -178,34 +171,6 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 		this.maxParallelRequests = Integer.parseInt(this.getSetting("maxParallelRequests", ("" + this.maxParallelRequests)));
 		this.maxParallelTokens = Integer.parseInt(this.getSetting("maxParallelTokens", ("" + this.maxParallelTokens)));
 		this.workDiscBased = ((this.maxParallelRequests > 0) || (this.maxParallelTokens > 0));
-		
-		//	load GG configuration
-		GoldenGateConfiguration ggConfig = null;
-		
-		//	load configuration
-		try {
-			ggConfig = ConfigurationUtils.getConfiguration(ggConfigName, ggConfigPath, ggConfigHost, this.dataFolder);
-		}
-		catch (IOException ioe) {
-			throw new ServletException("Unable to access GoldenGATE Configuration.", ioe);
-		}
-		
-		//	check if we got a configuration from somewhere
-		if (ggConfig == null)
-			throw new ServletException("Unable to access GoldenGATE Configuration.");
-		
-		//	start GG instance
-		try {
-			this.goldenGate = GoldenGATE.openGoldenGATE(ggConfig, false, false);
-		}
-		catch (IOException ioe) {
-			throw new ServletException("Unable to load GoldenGATE instance.", ioe);
-		}
-		
-		//	get services
-		this.webServiceManager = ((WebServiceManager) this.goldenGate.getPlugin(WebServiceManager.class.getName()));
-		if (this.webServiceManager == null)
-			throw new ServletException("Unable to access GoldenGATE Web Service Manager.");
 		
 		//	create request handler
 		this.requestHandler = new GgWsRequestHandler();
@@ -251,6 +216,58 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 			this.waitingHandler = new WaitingRequestHandler();
 			this.waitingHandler.start();
 		}
+	}
+	
+	/* (non-Javadoc)
+	 * @see de.uka.ipd.idaho.easyIO.web.HtmlServlet#reInit()
+	 */
+	protected void reInit() throws ServletException {
+		super.reInit();
+		
+		//	check if any requests running
+		if ((this.requestHandler != null) && (this.requestHandler.getRunningRequestCount() != 0))
+			throw new ServletException("Unable to reload GoldenGATE, there are request running.");
+		
+		//	shut down GoldenGATE
+		if (this.goldenGate != null) {
+			this.goldenGate.exitShutdown();
+			this.goldenGate = null;
+		}
+		
+		//	read how to access GoldenGATE config
+		String ggConfigName = this.getSetting("GgConfigName");
+		String ggConfigHost = this.getSetting("GgConfigHost");
+		String ggConfigPath = this.getSetting("GgConfigPath");
+		if (ggConfigName == null)
+			throw new ServletException("Unable to access GoldenGATE Configuration.");
+		
+		//	load GG configuration
+		GoldenGateConfiguration ggConfig = null;
+		
+		//	load configuration
+		try {
+			ggConfig = ConfigurationUtils.getConfiguration(ggConfigName, ggConfigPath, ggConfigHost, this.dataFolder);
+		}
+		catch (IOException ioe) {
+			throw new ServletException("Unable to access GoldenGATE Configuration.", ioe);
+		}
+		
+		//	check if we got a configuration from somewhere
+		if (ggConfig == null)
+			throw new ServletException("Unable to access GoldenGATE Configuration.");
+		
+		//	start GG instance
+		try {
+			this.goldenGate = GoldenGATE.openGoldenGATE(ggConfig, false, false);
+		}
+		catch (IOException ioe) {
+			throw new ServletException("Unable to load GoldenGATE instance.", ioe);
+		}
+		
+		//	get services
+		this.webServiceManager = ((WebServiceManager) this.goldenGate.getPlugin(WebServiceManager.class.getName()));
+		if (this.webServiceManager == null)
+			throw new ServletException("Unable to access GoldenGATE Web Service Manager.");
 	}
 	
 	/* (non-Javadoc)

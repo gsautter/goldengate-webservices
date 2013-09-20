@@ -44,4 +44,16 @@
 		<servlet-name>GgWsSync</servlet-name>
 		<url-pattern>/wss</url-pattern>
 	</servlet-mapping>
+	<servlet>
+		<servlet-name>ReInit</servlet-name>
+		<servlet-class>de.uka.ipd.idaho.easyIO.web.ReInitializerServlet</servlet-class>
+		<init-param>
+			<param-name>dataPath</param-name>
+			<param-value>reInitData</param-value>
+		</init-param>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>ReInit</servlet-name>
+		<url-pattern>/reInit</url-pattern>
+	</servlet-mapping>
 </web-app>
