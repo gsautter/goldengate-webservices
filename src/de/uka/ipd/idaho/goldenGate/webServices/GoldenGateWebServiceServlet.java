@@ -621,7 +621,7 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 			this.listRequests(clientIdOrFunctionNameOrAction, request, response);
 		}
 		
-		//	invokation with callback URL
+		//	Invocation with callback URL
 		else if (INVOKE_FUNCTION_COMMAND.equals(actionOrRequestId)) {
 			
 			//	get service name

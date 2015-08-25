@@ -94,7 +94,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 			else actionOrRequestId = pathInfo.substring(0, pathInfo.indexOf('/'));
 		}
 		
-		//	catch data URL callback invokations
+		//	catch data URL callback invocations
 		if (INVOKE_FUNCTION_COMMAND.equals(actionOrRequestId))
 			this.doWsRequest(request, response, "GET");
 		
@@ -133,7 +133,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		//	request response
 		InputStream wsIn = wsCon.getInputStream();
 		
-		//	loop through reponse headers
+		//	loop through response headers
 		Map wsResHeaders = wsCon.getHeaderFields();
 		for (Iterator hns = wsResHeaders.keySet().iterator(); hns.hasNext();) {
 			String hn = ((String) hns.next());
@@ -182,7 +182,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		//	request response
 		InputStream wsIn = wsCon.getInputStream();
 		
-		//	loop through reponse headers
+		//	loop through response headers
 		Map wsResHeaders = wsCon.getHeaderFields();
 		for (Iterator hns = wsResHeaders.keySet().iterator(); hns.hasNext();) {
 			String hn = ((String) hns.next());
