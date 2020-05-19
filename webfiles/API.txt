@@ -26,6 +26,6 @@ GoldenGATE Web Service asynchronous servlet (/GgWS/ws):
 
 GoldenGATE Web Service synchronous servlet (/GgWS/wss):
 
-        /GgWS/ws/test: retrieve an HTML page containing a form for testing web service functionality
+        /GgWS/wss/test: retrieve an HTML page containing a form for testing web service functionality
         
-        /GgWS/ws/listFunctions: get list of available functions
+        /GgWS/wss/listFunctions: get list of available functions

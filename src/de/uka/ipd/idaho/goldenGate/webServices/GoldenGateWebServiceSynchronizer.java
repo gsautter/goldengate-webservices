@@ -137,7 +137,12 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		Map wsResHeaders = wsCon.getHeaderFields();
 		for (Iterator hns = wsResHeaders.keySet().iterator(); hns.hasNext();) {
 			String hn = ((String) hns.next());
-			response.setHeader(hn, wsCon.getHeaderField(hn));
+			if (hn == null)
+				continue;
+			String hv = wsCon.getHeaderField(hn);
+			if (hv == null)
+				continue;
+			response.setHeader(hn, hv);
 		}
 		response.setCharacterEncoding(wsCon.getContentEncoding());
 		response.setContentType(wsCon.getContentType());
@@ -186,7 +191,12 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		Map wsResHeaders = wsCon.getHeaderFields();
 		for (Iterator hns = wsResHeaders.keySet().iterator(); hns.hasNext();) {
 			String hn = ((String) hns.next());
-			response.setHeader(hn, wsCon.getHeaderField(hn));
+			if (hn == null)
+				continue;
+			String hv = wsCon.getHeaderField(hn);
+			if (hv == null)
+				continue;
+			response.setHeader(hn, hv);
 		}
 		response.setCharacterEncoding(wsCon.getContentEncoding());
 		response.setContentType(wsCon.getContentType());
@@ -290,13 +300,18 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 				//	connect to get headers and loop them through
 				URL wsResUrl = new URL(wsUrl.getProtocol(), wsUrl.getHost(), wsUrl.getPort(), result[0]);
 				HttpURLConnection wsResCon = ((HttpURLConnection) wsResUrl.openConnection());
-				wsResCon.setRequestMethod("GET");
 				wsResCon.setDoInput(true);
+				wsResCon.setRequestMethod("GET");
 				InputStream wsResIn = wsResCon.getInputStream();
 				Map wsResHeaders = wsResCon.getHeaderFields();
 				for (Iterator hns = wsResHeaders.keySet().iterator(); hns.hasNext();) {
 					String hn = ((String) hns.next());
-					response.setHeader(hn, wsResCon.getHeaderField(hn));
+					if (hn == null)
+						continue;
+					String hv = wsResCon.getHeaderField(hn);
+					if (hv == null)
+						continue;
+					response.setHeader(hn, hv);
 				}
 				response.setCharacterEncoding(wsResCon.getContentEncoding());
 				response.setContentType(wsResCon.getContentType());
@@ -319,13 +334,18 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 				//	connect to get headers and loop them through
 				URL wsErrUrl = new URL(wsUrl.getProtocol(), wsUrl.getHost(), wsUrl.getPort(), error[0]);
 				HttpURLConnection wsErrCon = ((HttpURLConnection) wsErrUrl.openConnection());
+				wsErrCon.setDoInput(true);
 				wsErrCon.setRequestMethod("GET");
-				wsCon.setDoInput(true);
 				InputStream wsErrIn = wsErrCon.getInputStream();
 				Map wsErrHeaders = wsErrCon.getHeaderFields();
 				for (Iterator hns = wsErrHeaders.keySet().iterator(); hns.hasNext();) {
 					String hn = ((String) hns.next());
-					response.setHeader(hn, wsErrCon.getHeaderField(hn));
+					if (hn == null)
+						continue;
+					String hv = wsErrCon.getHeaderField(hn);
+					if (hv == null)
+						continue;
+					response.setHeader(hn, hv);
 				}
 				response.setCharacterEncoding(wsErrCon.getContentEncoding());
 				response.setContentType(wsErrCon.getContentType());
@@ -349,7 +369,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 				if (cancelFeedback[0] != null) {
 					URL wsCfbUrl = new URL(wsUrl.getProtocol(), wsUrl.getHost(), wsUrl.getPort(), result[0]);
 					HttpURLConnection wsCfbCon = ((HttpURLConnection) wsCfbUrl.openConnection());
-					wsCon.setDoInput(true);
+					wsCfbCon.setDoInput(true);
 					wsCfbCon.setRequestMethod("GET");
 					InputStream wsCfbIn = wsCfbCon.getInputStream();
 					while ((read = wsCfbIn.read(buffer, 0, buffer.length)) != -1) {}
