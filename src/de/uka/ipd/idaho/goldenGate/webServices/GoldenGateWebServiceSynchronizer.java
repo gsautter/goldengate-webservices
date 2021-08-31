@@ -46,7 +46,7 @@ import de.uka.ipd.idaho.htmlXmlUtil.grammars.Html;
 import de.uka.ipd.idaho.htmlXmlUtil.grammars.StandardGrammar;
 
 /**
- * Synchronous web frontend for GoldenGATE web services.
+ * Synchronous web front-end for GoldenGATE web services.
  * 
  * @author sautter
  */
@@ -127,8 +127,10 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		wsCon.setRequestMethod(method);
 		for (Enumeration hns = request.getHeaderNames(); hns.hasMoreElements();) {
 			String hn = ((String) hns.nextElement());
+			//System.out.println("Test form request header: " + hn + " - " + request.getHeader(hn));
 			wsCon.setRequestProperty(hn, request.getHeader(hn));
 		}
+		wsCon.setRequestProperty("Accept-Encoding", "identity"); // make sure we get a plain text response to parse below
 		
 		//	request response
 		InputStream wsIn = wsCon.getInputStream();
@@ -137,6 +139,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		Map wsResHeaders = wsCon.getHeaderFields();
 		for (Iterator hns = wsResHeaders.keySet().iterator(); hns.hasNext();) {
 			String hn = ((String) hns.next());
+			//System.out.println("Test form response header: " + hn + " - " + wsCon.getHeaderField(hn));
 			if (hn == null)
 				continue;
 			String hv = wsCon.getHeaderField(hn);
@@ -144,7 +147,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 				continue;
 			response.setHeader(hn, hv);
 		}
-		response.setCharacterEncoding(wsCon.getContentEncoding());
+		response.setCharacterEncoding(ENCODING);
 		response.setContentType(wsCon.getContentType());
 		
 		//	send test from page
@@ -153,6 +156,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		this.htmlParser.stream(wsR, new TokenReceiver() {
 			public void close() throws IOException {}
 			public void storeToken(String token, int treeDepth) throws IOException {
+				//System.out.println("Test form token: " + token.trim());
 				if (html.isTag(token) && "form".equalsIgnoreCase(html.getType(token)) && !html.isEndTag(token)) {
 					TreeNodeAttributeSet tnas = TreeNodeAttributeSet.getTagAttributes(token, html);
 					tnas.setAttribute("action", (request.getContextPath() + request.getServletPath() + "/" + INVOKE_FUNCTION_COMMAND));
@@ -181,6 +185,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		wsCon.setRequestMethod(method);
 		for (Enumeration hns = request.getHeaderNames(); hns.hasMoreElements();) {
 			String hn = ((String) hns.nextElement());
+			//System.out.println("Proxy request header: " + hn + " - " + request.getHeader(hn));
 			wsCon.setRequestProperty(hn, request.getHeader(hn));
 		}
 		
@@ -191,6 +196,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		Map wsResHeaders = wsCon.getHeaderFields();
 		for (Iterator hns = wsResHeaders.keySet().iterator(); hns.hasNext();) {
 			String hn = ((String) hns.next());
+			//System.out.println("Proxy response header: " + hn + " - " + wsCon.getHeaderField(hn));
 			if (hn == null)
 				continue;
 			String hv = wsCon.getHeaderField(hn);
@@ -227,6 +233,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		wsCon.setRequestMethod(method);
 		for (Enumeration hns = request.getHeaderNames(); hns.hasMoreElements();) {
 			String hn = ((String) hns.nextElement());
+			//System.out.println("WS request header: " + hn + " - " + request.getHeader(hn));
 			wsCon.setRequestProperty(hn, request.getHeader(hn));
 		}
 		
@@ -234,9 +241,8 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		OutputStream wsOut = new BufferedOutputStream(wsCon.getOutputStream());
 		InputStream reqIn = request.getInputStream();
 		byte[] buffer = new byte[1024];
-		int read;
-		while ((read = reqIn.read(buffer, 0, buffer.length)) != -1)
-			wsOut.write(buffer, 0, read);
+		for (int r; (r = reqIn.read(buffer, 0, buffer.length)) != -1;)
+			wsOut.write(buffer, 0, r);
 		wsOut.flush();
 		wsOut.close();
 		
@@ -249,7 +255,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 		final String[] error = {null};
 		while (true) {
 			
-			//	connect to last stautus update URL if not reading initial invokation response
+			//	connect to last status update URL if not reading initial invocation response
 			if (wsIn == null)
 				wsIn = new BufferedReader(new InputStreamReader((new URL(wsUrl.getProtocol(), wsUrl.getHost(), wsUrl.getPort(), status[0])).openStream(), ENCODING));
 			
@@ -306,6 +312,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 				Map wsResHeaders = wsResCon.getHeaderFields();
 				for (Iterator hns = wsResHeaders.keySet().iterator(); hns.hasNext();) {
 					String hn = ((String) hns.next());
+					//System.out.println("WS response header (result): " + hn + " - " + wsCon.getHeaderField(hn));
 					if (hn == null)
 						continue;
 					String hv = wsResCon.getHeaderField(hn);
@@ -318,8 +325,8 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 				
 				//	loop through content
 				OutputStream respOut = response.getOutputStream();
-				while ((read = wsResIn.read(buffer, 0, buffer.length)) != -1)
-					respOut.write(buffer, 0, read);
+				for (int r; (r = wsResIn.read(buffer, 0, buffer.length)) != -1;)
+					respOut.write(buffer, 0, r);
 				respOut.flush();
 				respOut.close();
 				
@@ -340,6 +347,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 				Map wsErrHeaders = wsErrCon.getHeaderFields();
 				for (Iterator hns = wsErrHeaders.keySet().iterator(); hns.hasNext();) {
 					String hn = ((String) hns.next());
+					//System.out.println("WS response header (error): " + hn + " - " + wsCon.getHeaderField(hn));
 					if (hn == null)
 						continue;
 					String hv = wsErrCon.getHeaderField(hn);
@@ -352,8 +360,8 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 				
 				//	loop through content
 				OutputStream respOut = response.getOutputStream();
-				while ((read = wsErrIn.read(buffer, 0, buffer.length)) != -1)
-					respOut.write(buffer, 0, read);
+				for (int r; (r = wsErrIn.read(buffer, 0, buffer.length)) != -1;)
+					respOut.write(buffer, 0, r);
 				respOut.flush();
 				respOut.close();
 				
@@ -372,7 +380,7 @@ public class GoldenGateWebServiceSynchronizer extends WebServlet implements Gold
 					wsCfbCon.setDoInput(true);
 					wsCfbCon.setRequestMethod("GET");
 					InputStream wsCfbIn = wsCfbCon.getInputStream();
-					while ((read = wsCfbIn.read(buffer, 0, buffer.length)) != -1) {}
+					for (int r; (r = wsCfbIn.read(buffer, 0, buffer.length)) != -1;) {}
 					wsCfbIn.close();
 				}
 				

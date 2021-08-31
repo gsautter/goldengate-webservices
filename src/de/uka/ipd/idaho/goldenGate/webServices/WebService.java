@@ -145,13 +145,13 @@ public class WebService implements GoldenGateWebServiceConstants, Resource {
 		for (Iterator idfit = this.inputFormats.keySet().iterator(); idfit.hasNext();) {
 			String idfa = ((String) idfit.next());
 			DocumentFormat idf = ((DocumentFormat) this.inputFormats.get(idfa));
-			bw.write("<" + INPUT_FORMAT_NODE_TYPE + " " + NAME_ATTRIBUTE + "=\"" + idfa + "\" " + LABEL_ATTRIBUTE + "=\"" + idf.getDescription() + "\"" + (idfa.equals(this.defaultInputFormat) ? " " + IS_DEFAULT_DATA_FORMAT_ATTRIBUTE + "=\"true\"" : "") + "/>");
+			bw.write("<" + INPUT_FORMAT_NODE_TYPE + " " + NAME_ATTRIBUTE + "=\"" + AnnotationUtils.escapeForXml(idfa) + "\" " + LABEL_ATTRIBUTE + "=\"" + AnnotationUtils.escapeForXml(idf.getDescription()) + "\"" + (idfa.equals(this.defaultInputFormat) ? " " + IS_DEFAULT_DATA_FORMAT_ATTRIBUTE + "=\"true\"" : "") + "/>");
 			bw.newLine();
 		}
 		for (Iterator odfit = this.outputFormats.keySet().iterator(); odfit.hasNext();) {
 			String odfa = ((String) odfit.next());
 			DocumentFormat odf = ((DocumentFormat) this.outputFormats.get(odfa));
-			bw.write("<" + OUTPUT_FORMAT_NODE_TYPE + " " + NAME_ATTRIBUTE + "=\"" + odfa + "\" " + LABEL_ATTRIBUTE + "=\"" + odf.getDescription() + "\"" + (odfa.equals(this.defaultOutputFormat) ? " " + IS_DEFAULT_DATA_FORMAT_ATTRIBUTE + "=\"true\"" : "") + "/>");
+			bw.write("<" + OUTPUT_FORMAT_NODE_TYPE + " " + NAME_ATTRIBUTE + "=\"" + AnnotationUtils.escapeForXml(odfa) + "\" " + LABEL_ATTRIBUTE + "=\"" + AnnotationUtils.escapeForXml(odf.getDescription()) + "\"" + (odfa.equals(this.defaultOutputFormat) ? " " + IS_DEFAULT_DATA_FORMAT_ATTRIBUTE + "=\"true\"" : "") + "/>");
 			bw.newLine();
 		}
 		bw.write("<" + DESCRIPTION_NODE_TYPE + ">" + AnnotationUtils.escapeForXml(this.description, true) + "</" + DESCRIPTION_NODE_TYPE + ">");

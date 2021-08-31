@@ -142,8 +142,10 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 	private File resultCacheFolder = null;
 	
 	private boolean allowUserInteraction = true;
+	private Object goldenGateLock = new Object();
 	private GoldenGATE goldenGate;
 	private WebServiceManager webServiceManager;
+	private String webServiceFileExtension;
 	
 	private int maxParallelRequests = 0;
 	private int maxParallelTokens = 0;
@@ -176,15 +178,18 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 		this.requestHandler = new GgWsRequestHandler();
 		
 		//	set up caching
-		this.cacheRootFolder = new File(this.dataFolder, "cache");
-		this.cacheRootFolder.mkdir();
+		String cacheRootPath = this.getSetting("cacheRootFolder", "cache");
+		if (cacheRootPath.startsWith("/") || (cacheRootPath.indexOf(":\\") != -1) || (cacheRootPath.indexOf(":/") != -1))
+			this.cacheRootFolder = new File(cacheRootPath);
+		else this.cacheRootFolder = new File(this.dataFolder, cacheRootPath);
+		this.cacheRootFolder.mkdirs();
 		this.requestCacheFolder = new File(this.cacheRootFolder, "requests");
 		this.requestCacheFolder.mkdir();
 		this.resultCacheFolder = new File(this.cacheRootFolder, "results");
 		this.resultCacheFolder.mkdir();
 		
 		//	load cached results from disc and put them in index
-		File[] cachedResults = GoldenGateWebServiceServlet.this.resultCacheFolder.listFiles(new FileFilter() {
+		File[] cachedResults = this.resultCacheFolder.listFiles(new FileFilter() {
 			public boolean accept(File file) {
 				String fn = file.getName();
 				return (file.isFile() && fn.endsWith(RESULT_FILE_SUFFIX));
@@ -203,7 +208,7 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 				crClientId = cid.toString();
 			}
 			FinishedRequestProxy frp = new FinishedRequestProxy(crId, crClientId, cachedResults[r]);
-			GoldenGateWebServiceServlet.this.finishedRequestIndex.put(frp);
+			this.finishedRequestIndex.put(frp);
 		}
 		
 		//	initialize finished request caching
@@ -228,46 +233,90 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 		if ((this.requestHandler != null) && (this.requestHandler.getRunningRequestCount() != 0))
 			throw new ServletException("Unable to reload GoldenGATE, there are request running.");
 		
-		//	shut down GoldenGATE
-		if (this.goldenGate != null) {
-			this.goldenGate.exitShutdown();
-			this.goldenGate = null;
+		//	need to synchronize GG startup
+		synchronized (this.goldenGateLock) {
+			
+			//	shut down GoldenGATE
+			if (this.goldenGate != null) {
+				this.goldenGate.exitShutdown();
+				this.goldenGate = null;
+				this.webServiceManager = null;
+				this.webServiceFileExtension = null;
+			}
+			
+			//	read how to access GoldenGATE config
+			String ggConfigName = this.getSetting("GgConfigName");
+			String ggConfigHost = this.getSetting("GgConfigHost");
+			String ggConfigPath = this.getSetting("GgConfigPath");
+			if (ggConfigName == null)
+				throw new ServletException("Unable to access GoldenGATE Configuration.");
+			
+			//	read GG installation folder
+			String ggRootPath = this.getSetting("GgRootPath");
+			File ggRootFolder;
+			if (ggRootPath == null)
+				ggRootFolder = this.dataFolder;
+			else if (ggRootPath.startsWith("/") || (ggRootPath.indexOf(":\\") != -1) || (ggRootPath.indexOf(":/") != -1))
+				ggRootFolder = new File(ggRootPath);
+			else ggRootFolder = new File(this.dataPath, ggRootPath);
+			
+			//	load GG configuration
+			GoldenGateConfiguration ggConfig = null;
+			
+			//	load configuration
+			try {
+				ggRootFolder.mkdirs();
+				ggConfig = ConfigurationUtils.getConfiguration(ggConfigName, ggConfigPath, ggConfigHost, ggRootFolder);
+			}
+			catch (IOException ioe) {
+				throw new ServletException("Unable to access GoldenGATE Configuration.", ioe);
+			}
+			
+			//	check if we got a configuration from somewhere
+			if (ggConfig == null)
+				throw new ServletException("Unable to access GoldenGATE Configuration.");
+			
+			//	start GG instance
+			try {
+				this.goldenGate = GoldenGATE.openGoldenGATE(ggConfig, false, false);
+			}
+			catch (IOException ioe) {
+				throw new ServletException("Unable to load GoldenGATE instance.", ioe);
+			}
+			
+			//	get services
+			this.webServiceManager = ((WebServiceManager) this.goldenGate.getPlugin(WebServiceManager.class.getName()));
+			if (this.webServiceManager == null)
+				throw new ServletException("Unable to access GoldenGATE Web Service Manager.");
+			this.webServiceFileExtension = this.webServiceManager.getFileExtension();
+			
+			//	wake up whoever is waiting on web service manager
+			this.goldenGateLock.notify();
 		}
-		
-		//	read how to access GoldenGATE config
-		String ggConfigName = this.getSetting("GgConfigName");
-		String ggConfigHost = this.getSetting("GgConfigHost");
-		String ggConfigPath = this.getSetting("GgConfigPath");
-		if (ggConfigName == null)
-			throw new ServletException("Unable to access GoldenGATE Configuration.");
-		
-		//	load GG configuration
-		GoldenGateConfiguration ggConfig = null;
-		
-		//	load configuration
-		try {
-			ggConfig = ConfigurationUtils.getConfiguration(ggConfigName, ggConfigPath, ggConfigHost, this.dataFolder);
+	}
+	
+	private String[] getWebServiceNames() {
+		WebServiceManager wsm;
+		synchronized (this.goldenGateLock) {
+			wsm = this.webServiceManager;
+			while (wsm == null) try {
+				this.goldenGateLock.wait(1000);
+				wsm = this.webServiceManager;
+			} catch (InterruptedException ie) {}
 		}
-		catch (IOException ioe) {
-			throw new ServletException("Unable to access GoldenGATE Configuration.", ioe);
+		return wsm.getResourceNames();
+	}
+	
+	private WebService getWebService(String name) {
+		WebServiceManager wsm;
+		synchronized (this.goldenGateLock) {
+			wsm = this.webServiceManager;
+			while (wsm == null) try {
+				this.goldenGateLock.wait(1000);
+				wsm = this.webServiceManager;
+			} catch (InterruptedException ie) {}
 		}
-		
-		//	check if we got a configuration from somewhere
-		if (ggConfig == null)
-			throw new ServletException("Unable to access GoldenGATE Configuration.");
-		
-		//	start GG instance
-		try {
-			this.goldenGate = GoldenGATE.openGoldenGATE(ggConfig, false, false);
-		}
-		catch (IOException ioe) {
-			throw new ServletException("Unable to load GoldenGATE instance.", ioe);
-		}
-		
-		//	get services
-		this.webServiceManager = ((WebServiceManager) this.goldenGate.getPlugin(WebServiceManager.class.getName()));
-		if (this.webServiceManager == null)
-			throw new ServletException("Unable to access GoldenGATE Web Service Manager.");
+		return wsm.getWebService(name);
 	}
 	
 	/* (non-Javadoc)
@@ -601,6 +650,13 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 			this.sendTestForm(request, response);
 			return;
 		}
+//		
+//		//	list status info
+//		//	TODO use this for trouble shooting
+//		if ("status".equalsIgnoreCase(actionOrRequestId)) {
+//			this.sendStatusOverview(response);
+//			return;
+//		}
 		
 		//	list available services
 		if (LIST_FUNCTIONS_COMMAND.equals(actionOrRequestId))
@@ -629,7 +685,7 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 				clientIdOrFunctionNameOrAction = request.getParameter(FUNCTION_NAME_PARAMETER);
 			
 			//	get service to use
-			WebService service = this.webServiceManager.getWebService(clientIdOrFunctionNameOrAction);
+			WebService service = this.getWebService(clientIdOrFunctionNameOrAction);
 			if (service == null) {
 				response.sendError(HttpServletResponse.SC_NOT_FOUND, ("Unknown function: " + clientIdOrFunctionNameOrAction));
 				return;
@@ -717,10 +773,10 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 	}
 	
 	private void sendTestForm(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		final String[] wsNames = this.webServiceManager.getResourceNames();
+		final String[] wsNames = this.getWebServiceNames();
 		final ArrayList wsList = new ArrayList();
 		for (int w = 0; w < wsNames.length; w++) {
-			WebService ws = this.webServiceManager.getWebService(wsNames[w]);
+			WebService ws = this.getWebService(wsNames[w]);
 			if (ws != null)
 				wsList.add(ws);
 		}
@@ -754,7 +810,15 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 				}
 				
 				//	open form
-				this.writeLine("<form id=\"testForm\" method=\"POST\" action=\"" + this.request.getContextPath() + this.request.getServletPath() + "/" + INVOKE_FUNCTION_COMMAND + "\" onsubmit=\"return checkDataSource();\" enctype=\"application/x-www-urlencoded\">");
+				this.writeLine("<form" +
+						" id=\"testForm\"" +
+						" method=\"POST\"" +
+						" action=\"" + this.request.getContextPath() + this.request.getServletPath() + "/" + INVOKE_FUNCTION_COMMAND + "\"" +
+						" onsubmit=\"return checkDataSource();\"" +
+						" enctype=\"application/x-www-urlencoded\"" +
+						" accept-charset=\"" + ENCODING + "\"" +
+						" target=\"_blank\"" +
+						">");
 				
 				//	add JavaScripts
 				this.writeLine("<script type=\"text/javascript\">");
@@ -847,14 +911,14 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 				for (int w = 0; w < wss.length; w++) {
 					String wsName = wss[w].getName();
 					StringBuffer wsLabel = new StringBuffer();
-					int wsSuffixStart = wsName.lastIndexOf(webServiceManager.getFileExtension());
+					int wsSuffixStart = wsName.lastIndexOf(webServiceFileExtension);
 					for (int c = 0; c < wsSuffixStart; c++) {
 						char ch = wsName.charAt(c);
 						if ((c != 0) && Character.isUpperCase(ch))
 							wsLabel.append(' ');
 						wsLabel.append(ch);
 					}
-					this.writeLine("<option value=\"" + wsName + "\">" + wsLabel.toString() + "</option>");
+					this.writeLine("<option value=\"" + wsName + "\">" + html.escape(wsLabel.toString()) + "</option>");
 				}
 				this.writeLine("</select>");
 				this.writeLine("</td>");
@@ -870,7 +934,7 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 				for (Iterator ifnit = ifnMap.keySet().iterator(); ifnit.hasNext();) {
 					String ifn = ((String) ifnit.next());
 					String ifl = ((String) ifnMap.get(ifn));
-					this.writeLine("<option value=\"" + ifn + "\">" + ifl + "</option>");
+					this.writeLine("<option value=\"" + ifn + "\">" + html.escape(ifl) + "</option>");
 				}
 				this.writeLine("</select>");
 				this.writeLine("</td>");
@@ -906,6 +970,35 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 			}
 		});
 	}
+//	
+//	private void sendStatusOverview(HttpServletResponse response) throws IOException {
+//		response.setCharacterEncoding(ENCODING);
+//		response.setContentType("text/xml");
+//		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(response.getOutputStream(), ENCODING));
+//		bw.write("<status");
+//		bw.write(" requests=\"" + this.requestHandler.getRequestCount() + "\"");
+//		bw.write(" requestsRunning=\"" + this.requestHandler.getRunningRequestCount() + "\"");
+//		bw.write(" requestsFeedback=\"" + this.requestHandler.getFeedbackAwaitingRequestCount() + "\"");
+//		bw.write(" requestsWaiting=\"" + this.waitingRequestQueue.size() + "\"");
+//		bw.write(" requestsFinishing=\"" + this.finishedRequestQueue.size() + "\"");
+//		bw.write(" requestsFinished=\"" + this.finishedRequestIndex.size() + "\"");
+//		bw.write(">");
+//		bw.newLine();
+//		for (Iterator rit = this.waitingRequestQueue.queue.iterator(); rit.hasNext();) {
+//			WaitingRequestProxy wrp = ((WaitingRequestProxy) rit.next());
+//			bw.write("<request");
+//			bw.write(" id=\"" + wrp.id + "\"");
+//			bw.write(" clientId=\"" + wrp.clientId + "\"");
+//			bw.write(" name=\"" + wrp.name + "\"");
+//			bw.write(" size=\"" + wrp.size + "\"");
+//			bw.write(" functionName=\"" + wrp.functionName + "\"");
+//			bw.write("/>");
+//			bw.newLine();
+//		}
+//		bw.write("</status>");
+//		bw.newLine();
+//		bw.flush();
+//	}
 	
 	private void listServices(HttpServletResponse response) throws IOException {
 		response.setCharacterEncoding(ENCODING);
@@ -917,9 +1010,9 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 	private void writeServiceList(BufferedWriter bw) throws IOException {
 		bw.write("<" + SERVICES_NODE_TYPE + ">");
 		bw.newLine();
-		String[] serviceNames = this.webServiceManager.getResourceNames();
+		String[] serviceNames = this.getWebServiceNames();
 		for (int s = 0; s < serviceNames.length; s++) {
-			WebService service = this.webServiceManager.getWebService(serviceNames[s]);
+			WebService service = this.getWebService(serviceNames[s]);
 			if (service == null)
 				continue;
 			if (INTERACTIVE_ALWAYS.equals(service.getInteractivity()) && !this.allowUserInteraction)
@@ -1018,7 +1111,7 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 				functionName = reqData.getFieldValue(FUNCTION_NAME_PARAMETER);
 			
 			//	get service to use
-			WebService service = this.webServiceManager.getWebService(functionName);
+			WebService service = this.getWebService(functionName);
 			if (service == null) {
 				response.sendError(HttpServletResponse.SC_NOT_FOUND, ("Unknown function: " + functionName));
 				return;
@@ -1255,7 +1348,7 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 				System.out.println(" - runnable");
 				
 				//	get service to use
-				WebService service = GoldenGateWebServiceServlet.this.webServiceManager.getWebService(wrp.functionName);
+				WebService service = GoldenGateWebServiceServlet.this.getWebService(wrp.functionName);
 				if (service == null)
 					System.out.println(" ==> function does not exist");
 				else try {
@@ -1570,7 +1663,7 @@ public class GoldenGateWebServiceServlet extends HtmlServlet implements GoldenGa
 				FileInputStream dataIn = new FileInputStream(this.dataFile);
 				MutableAnnotation data = GenericGamtaXML.readDocument(dataIn);
 				dataIn.close();
-				WebService ws = ((this.functionName == null) ? null : GoldenGateWebServiceServlet.this.webServiceManager.getWebService(this.functionName));
+				WebService ws = ((this.functionName == null) ? null : GoldenGateWebServiceServlet.this.getWebService(this.functionName));
 				response.setCharacterEncoding(ENCODING);
 				response.setContentType("text/xml");
 				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(response.getOutputStream(), ENCODING));
